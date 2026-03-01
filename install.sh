@@ -26,6 +26,13 @@ fi
 # Make scripts executable
 chmod +x "$STATUSLINE_SRC"
 
+# Detect and save terminal width
+# install.sh runs in a real terminal so we can detect the actual width here
+detected_width=$(tput cols 2>/dev/null || cmd.exe //c "mode con" 2>/dev/null | grep -i col | tr -dc '0-9' || echo "80")
+echo "$detected_width" > "$HOME/.claude/statusline-width"
+echo "Terminal width: $detected_width (saved to ~/.claude/statusline-width)"
+echo "If this is wrong, run:  echo <width> > ~/.claude/statusline-width"
+
 # Backup current statusline if it exists
 if [ -f "$HOME/.claude/statusline-command.sh" ]; then
   cp "$HOME/.claude/statusline-command.sh" "$HOME/.claude/statusline-command.sh.bak"
@@ -41,8 +48,7 @@ if [ -f "$SETTINGS_FILE" ]; then
     const settingsPath = path.resolve(process.env.SETTINGS_PATH);
     const statuslinePath = process.env.STATUSLINE_PATH.replace(/\\/g, "/");
     const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    // Wrapper captures terminal width before Claude Code pipes stdin
-    const cmd = "bash -c " + JSON.stringify("COLS=$(tput cols 2>/dev/null || echo 80); cat | COLS=$COLS bash " + statuslinePath);
+    const cmd = "bash " + statuslinePath;
     settings.statusLine = { type: "command", command: cmd };
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
     console.log("Updated settings.json statusLine command");

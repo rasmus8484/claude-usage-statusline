@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-Fetches Claude usage limits (5-hour session, 7-day weekly) from Anthropic's OAuth API and displays them in Claude Code's terminal status bar alongside context window usage.
+Fetches Claude 5-hour session usage from Anthropic's OAuth API and displays it as a progress bar in Claude Code's terminal status bar, with a countdown to the next reset.
 
 ## Architecture
 
 - **scraper.mjs** — Node.js script (no dependencies). Reads OAuth token from `~/.claude/.credentials.json`, calls `GET https://api.anthropic.com/api/oauth/usage`, writes result to `~/.claude/usage.json`.
-- **statusline.sh** — Bash script invoked by Claude Code on each interaction. Reads Claude Code's JSON from stdin (context window data) and `~/.claude/usage.json` (cached usage data). Triggers background scraper refresh when data is >10s stale. Shows a red `!` when data is >30s old.
-- **install.sh** — Updates `~/.claude/settings.json` with a wrapper command that captures terminal width before piping, then points at `statusline.sh`.
+- **statusline.sh** — Bash script invoked by Claude Code on each interaction. Reads `~/.claude/usage.json` (cached usage data) and displays a progress bar with the percentage centered inside and a time-until-reset label. Triggers background scraper refresh when data is >10s stale.
+- **install.sh** — Updates `~/.claude/settings.json` to point at `statusline.sh`.
 
 ## Key Paths
 
@@ -28,23 +28,20 @@ bash statusline.sh     # Test statusline (pipe Claude Code JSON to stdin)
 
 ## Status Bar Design
 
-Three progress bars with percentages centered inside, dynamically scaled to terminal width:
+A single progress bar with the percentage centered inside, prefixed by a countdown to reset:
 
 ```
-ctx ▰▰▰▰▰▰▰ 42% ▱▱▱▱▱▱▱  ·  5h ▰▰▰▰▰▰▰ 68% ▰▰▱▱▱▱▱  ·  7d ▰▰▰▰▰▰▰ 45% ▱▱▱▱▱▱▱
+3h10m ████████ 52% ████░░░░░░░░
 ```
 
-- **ctx** — context window usage (from Claude Code stdin JSON)
-- **5h** — 5-hour session utilization
-- **7d** — 7-day weekly utilization
-- Filled `▰` segments are colored: green (<50%), yellow (50-79%), red (80%+)
-- Empty `▱` segments are dark gray
-- Labels are dimmed, separators (`·`) are gray
-- A red `!` appears at the end when data is >30s old
+- **3h10m** — time until the 5-hour session resets (dimmed label)
+- Filled `█` segments are colored: green (<50%), yellow (50-79%), red (80%+)
+- Empty `░` segments are dark gray
+- Percentage is bold white, centered in the bar
 
 ## API Details
 
 - Endpoint: `GET https://api.anthropic.com/api/oauth/usage`
 - Auth header: `Authorization: Bearer <oauth-token>`
 - Required header: `anthropic-beta: oauth-2025-04-20`
-- Returns JSON with `five_hour.utilization`, `seven_day.utilization` (0-100 percentages), and `resets_at` timestamps.
+- Returns JSON with `five_hour.utilization` (0-100 percentage) and `five_hour.resets_at` (ISO timestamp).

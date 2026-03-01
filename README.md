@@ -1,11 +1,15 @@
-# Claude Session Limit Scraper
+# Claude Usage Statusline
 
-Shows your Claude usage limits (5-hour session, 7-day weekly) directly in Claude Code's status bar.
+Shows your Claude 5-hour session usage as a progress bar in Claude Code's status bar, with a countdown to the next reset.
+
+```
+3h10m ████████ 52% ████░░░░░░░░
+```
 
 ## How it works
 
 1. **scraper.mjs** — Reads your OAuth token from `~/.claude/.credentials.json`, calls Anthropic's usage API, and caches the result to `~/.claude/usage.json`.
-2. **statusline.sh** — Replaces Claude Code's default status bar script. Displays context window usage (from Claude Code) plus session/weekly utilization (from the cached usage data). Auto-refreshes in the background every 5 minutes.
+2. **statusline.sh** — Displays the session usage as a color-coded progress bar with percentage centered inside and a time-until-reset label. Auto-refreshes in the background every 10 seconds.
 
 ## Install
 
@@ -18,7 +22,7 @@ This will:
 - Point Claude Code's settings to the new statusline
 - Run an initial data fetch
 
-Restart Claude Code (or start a new session) for the status bar to appear.
+Restart Claude Code for the status bar to appear.
 
 ## Manual refresh
 
@@ -26,17 +30,11 @@ Restart Claude Code (or start a new session) for the status bar to appear.
 node scraper.mjs
 ```
 
-## Status bar format
+## Color coding
 
-```
-ctx [████████░░░░░░░░░░░░]  42%  5h:44% 7d:35%
-```
-
-- **ctx bar** — context window usage (how full your conversation is)
-- **5h** — 5-hour session utilization (green <50%, yellow 50-79%, red 80%+)
-- **7d** — 7-day weekly utilization
-
-When data is stale (>5 min) or missing, values show as `??` and a background refresh is triggered.
+- **Green** — usage below 50%
+- **Yellow** — usage between 50-79%
+- **Red** — usage at 80% or above
 
 ## Uninstall
 
