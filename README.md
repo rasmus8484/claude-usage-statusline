@@ -19,6 +19,12 @@ Shows your Claude 5-hour session usage as a progress bar in Claude Code's status
 
 ## Install
 
+One-liner:
+```bash
+curl -fsSL https://raw.githubusercontent.com/rasmus8484/claude-usage-statusline/main/install-remote.sh | bash
+```
+
+Or manually:
 ```bash
 git clone https://github.com/rasmus8484/claude-usage-statusline.git
 cd claude-usage-statusline
