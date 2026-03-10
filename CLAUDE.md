@@ -9,13 +9,14 @@ Fetches Claude 5-hour session usage from Anthropic's OAuth API and displays it a
 ## Architecture
 
 - **scraper.mjs** — Node.js script (no dependencies). Reads OAuth token from `~/.claude/.credentials.json`, calls `GET https://api.anthropic.com/api/oauth/usage`, writes result to `~/.claude/usage.json`.
-- **statusline.sh** — Bash script invoked by Claude Code on each interaction. Reads `~/.claude/usage.json` (cached usage data) and displays a progress bar with the percentage centered inside and a time-until-reset label. Triggers background scraper refresh when data is >10s stale.
-- **install.sh** — Updates `~/.claude/settings.json` to point at `statusline.sh`.
+- **statusline.sh** — Bash script invoked by Claude Code on each interaction. Reads `~/.claude/usage.json` (cached usage data) and displays a progress bar with the percentage centered inside and a time-until-reset label. Triggers background scraper refresh when data is >30s stale. Auto-expires orphaned lock files after 60s.
+- **install.sh** — Checks prerequisites (Node.js), preserves existing statusline via a wrapper if present, updates `~/.claude/settings.json`, and runs an initial data fetch.
 
 ## Key Paths
 
 - Credentials: `~/.claude/.credentials.json` (field: `claudeAiOauth.accessToken`)
 - Cached usage: `~/.claude/usage.json`
+- Lock file: `~/.claude/.scraper.lock` (prevents concurrent scraper runs; auto-expires after 60s)
 - Settings: `~/.claude/settings.json` (field: `statusLine.command`)
 
 ## Commands

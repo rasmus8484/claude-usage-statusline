@@ -37,10 +37,8 @@ A two-part system:
   }
   ```
 
-### Credential Retrieval (Windows)
-Claude Code stores its OAuth token in the Windows Credential Manager. The scraper will extract it using PowerShell's `CredRead` API or Node.js native addon.
-
-**Note**: If OAuth tokens are restricted for third-party use (as reported Feb 2026), the tool will detect this and provide clear error messaging. The architecture supports swapping in alternative data sources (browser automation, manual token input) without changing the statusline integration.
+### Credential Retrieval
+Claude Code stores its OAuth token in `~/.claude/.credentials.json` (field: `claudeAiOauth.accessToken`). The scraper reads this file directly.
 
 ## Architecture
 
@@ -59,22 +57,23 @@ Claude Code stores its OAuth token in the Windows Credential Manager. The scrape
 
 ## Statusline Display Format
 
-The status bar will show (single line):
+The status bar shows a single progress bar with the percentage centered inside, prefixed by a countdown to reset:
 ```
-ctx [████████░░░░░░░░░░░░] 40%  ⏱ 5h:23% 7d:35%
+3h10m ████████ 52% ████░░░░░░░░
 ```
 
-- `ctx [bar] %` — existing context window usage (from Claude Code's stdin JSON)
-- `5h:23%` — 5-hour session utilization
-- `7d:35%` — 7-day weekly utilization
+- **3h10m** — time until the 5-hour session resets (dimmed label)
+- Filled `█` segments are colored: green (<50%), yellow (50-79%), red (80%+)
+- Empty `░` segments are dark gray
+- Percentage is bold white, centered in the bar
 
-When data is stale (>10 minutes old) or unavailable, show `5h:?? 7d:??`.
+When data is unavailable, show `??`.
 
 ## Scraper Behavior
 
 - **Invocation**: Run manually via `node scraper.mjs`, or scheduled via the statusline script on a cooldown.
 - **Caching**: Writes to `~/.claude/usage.json` with a timestamp. The statusline script checks freshness.
-- **Cooldown**: The statusline script triggers a background refresh if data is older than 5 minutes.
+- **Cooldown**: The statusline script triggers a background refresh if data is older than 30 seconds.
 - **Error handling**: On API failure, keeps existing cached data and logs errors to stderr.
 
 ## Non-Goals
@@ -88,8 +87,8 @@ When data is stale (>10 minutes old) or unavailable, show `5h:?? 7d:??`.
 
 - **Runtime**: Node.js (v24 available on system)
 - **Scraper**: Native `fetch()` (no external dependencies)
-- **Statusline**: Bash script with `sed` parsing (no `jq` dependency, matching existing setup)
-- **Credential access**: PowerShell interop for Windows Credential Manager
+- **Statusline**: Bash script with POSIX `sed` parsing (no `jq` dependency, compatible with GNU and BSD sed)
+- **Credential access**: Reads OAuth token from `~/.claude/.credentials.json`
 
 ## File Layout
 
@@ -99,7 +98,6 @@ claude-session-limit-scraper/
 ├── PRD.md
 ├── README.md
 ├── scraper.mjs          # Main scraper script
-├── get-credential.ps1   # PowerShell helper to extract OAuth token
 ├── install.sh           # Sets up statusline in ~/.claude/
-└── statusline.sh        # Combined statusline (context + usage)
+└── statusline.sh        # Status bar display script
 ```

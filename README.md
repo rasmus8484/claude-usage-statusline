@@ -9,16 +9,25 @@ Shows your Claude 5-hour session usage as a progress bar in Claude Code's status
 ## How it works
 
 1. **scraper.mjs** — Reads your OAuth token from `~/.claude/.credentials.json`, calls Anthropic's usage API, and caches the result to `~/.claude/usage.json`.
-2. **statusline.sh** — Displays the session usage as a color-coded progress bar with percentage centered inside and a time-until-reset label. Auto-refreshes in the background every 10 seconds.
+2. **statusline.sh** — Displays the session usage as a color-coded progress bar with percentage centered inside and a time-until-reset label. Auto-refreshes in the background every 30 seconds.
+
+## Prerequisites
+
+- **Node.js** (v18+ with native `fetch`)
+- **Bash** (Linux/macOS built-in, Windows via Git Bash)
+- **Claude Code** installed and logged in (needs `~/.claude/.credentials.json`)
 
 ## Install
 
 ```bash
+git clone https://github.com/rasmus8484/claude-usage-statusline.git
+cd claude-usage-statusline
 bash install.sh
 ```
 
 This will:
-- Back up your existing statusline script
+- Check that Node.js is available
+- Preserve your existing statusline (if any) by creating a wrapper that combines both
 - Point Claude Code's settings to the new statusline
 - Run an initial data fetch
 
@@ -36,10 +45,10 @@ node scraper.mjs
 - **Yellow** — usage between 50-79%
 - **Red** — usage at 80% or above
 
+## Note
+
+This tool uses an undocumented Anthropic API endpoint (`/api/oauth/usage`) that is not part of the public API. It may break or be blocked at any time without notice.
+
 ## Uninstall
 
-Restore your original statusline:
-```bash
-cp ~/.claude/statusline-command.sh.bak ~/.claude/statusline-command.sh
-```
-Then update `~/.claude/settings.json` to point back to `bash ~/.claude/statusline-command.sh`.
+Remove the `statusLine` entry from `~/.claude/settings.json`, or replace it with your own command.

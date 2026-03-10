@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 USAGE_FILE="$HOME/.claude/usage.json"
 SCRAPER="$SCRIPT_DIR/scraper.mjs"
 LOCK_FILE="$HOME/.claude/.scraper.lock"
-STALE_SECONDS=10  # 10 seconds
+STALE_SECONDS=30  # 30 seconds
 LOCK_MAX_AGE=60   # auto-expire lock after 60 seconds
 
 cat > /dev/null  # consume stdin
@@ -110,20 +110,20 @@ if [ -f "$USAGE_FILE" ]; then
   fi
 
   usage_data=$(cat "$USAGE_FILE")
-  raw_h5=$(echo "$usage_data" | sed -n 's/.*"five_hour".*"utilization":\s*\([0-9.]*\).*/\1/p' | head -1)
-  raw_d7=$(echo "$usage_data" | sed -n 's/.*"seven_day".*"utilization":\s*\([0-9.]*\).*/\1/p' | head -1)
+  raw_h5=$(echo "$usage_data" | sed -n 's/.*"five_hour".*"utilization":[ ]*\([0-9.]*\).*/\1/p' | head -1)
+  raw_d7=$(echo "$usage_data" | sed -n 's/.*"seven_day".*"utilization":[ ]*\([0-9.]*\).*/\1/p' | head -1)
 
   if [ -z "$raw_h5" ]; then
-    raw_h5=$(echo "$usage_data" | sed -n '/"five_hour"/,/}/{ s/.*"utilization":\s*\([0-9.]*\).*/\1/p; }' | head -1)
+    raw_h5=$(echo "$usage_data" | sed -n '/"five_hour"/,/}/{ s/.*"utilization":[ ]*\([0-9.]*\).*/\1/p; }' | head -1)
   fi
   if [ -z "$raw_d7" ]; then
-    raw_d7=$(echo "$usage_data" | sed -n '/"seven_day"/,/}/{ s/.*"utilization":\s*\([0-9.]*\).*/\1/p; }' | head -1)
+    raw_d7=$(echo "$usage_data" | sed -n '/"seven_day"/,/}/{ s/.*"utilization":[ ]*\([0-9.]*\).*/\1/p; }' | head -1)
   fi
 
   [ -n "$raw_h5" ] && h5="${raw_h5%%.*}"
 
   # Parse resets_at timestamp to calculate time remaining
-  raw_reset=$(echo "$usage_data" | sed -n '/"five_hour"/,/}/{ s/.*"resets_at":\s*"\([^"]*\)".*/\1/p; }' | head -1)
+  raw_reset=$(echo "$usage_data" | sed -n '/"five_hour"/,/}/{ s/.*"resets_at":[ ]*"\([^"]*\)".*/\1/p; }' | head -1)
   if [ -n "$raw_reset" ]; then
     reset_epoch=$(date -d "$raw_reset" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "$(echo "$raw_reset" | sed 's/\.[0-9]*+.*//')" +%s 2>/dev/null || echo 0)
     now_epoch=$(date +%s)
@@ -143,7 +143,7 @@ if [ -f "$USAGE_FILE" ]; then
     reset_label="??"
   fi
 
-  if [ "$age" -gt "$STALE_SECONDS" ] && [ ! -f "$LOCK_FILE" ]; then
+  if [ "$age" -gt "$STALE_SECONDS" ] && [ ! -f "$LOCK_FILE" ] && command -v node >/dev/null 2>&1; then
     (
       touch "$LOCK_FILE"
       node "$SCRAPER" >/dev/null 2>&1
@@ -151,7 +151,7 @@ if [ -f "$USAGE_FILE" ]; then
     ) &
   fi
 else
-  if [ ! -f "$LOCK_FILE" ] && [ -f "$SCRAPER" ]; then
+  if [ ! -f "$LOCK_FILE" ] && [ -f "$SCRAPER" ] && command -v node >/dev/null 2>&1; then
     (
       touch "$LOCK_FILE"
       node "$SCRAPER" >/dev/null 2>&1
