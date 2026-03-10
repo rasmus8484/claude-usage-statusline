@@ -8,8 +8,19 @@ USAGE_FILE="$HOME/.claude/usage.json"
 SCRAPER="$SCRIPT_DIR/scraper.mjs"
 LOCK_FILE="$HOME/.claude/.scraper.lock"
 STALE_SECONDS=10  # 10 seconds
+LOCK_MAX_AGE=60   # auto-expire lock after 60 seconds
 
 cat > /dev/null  # consume stdin
+
+# Clean up stale lock files (e.g., from killed scraper processes)
+if [ -f "$LOCK_FILE" ]; then
+  lock_epoch=$(stat -c %Y "$LOCK_FILE" 2>/dev/null || date -r "$LOCK_FILE" +%s 2>/dev/null || echo 0)
+  now_check=$(date +%s)
+  lock_age=$(( now_check - lock_epoch ))
+  if [ "$lock_age" -gt "$LOCK_MAX_AGE" ]; then
+    rm -f "$LOCK_FILE"
+  fi
+fi
 
 # --- ANSI colors ---
 RST='\033[0m'
