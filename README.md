@@ -8,7 +8,7 @@ Shows your Claude 5-hour session usage as a progress bar in Claude Code's status
 
 ## How it works
 
-1. **scraper.mjs** — Reads your OAuth token from `~/.claude/.credentials.json`, calls Anthropic's usage API, and caches the result to `~/.claude/usage.json`.
+1. **scraper.mjs** — Reads your OAuth token from `~/.claude/.credentials.json`, makes a minimal Messages API call (Haiku, 1 token) and extracts rate limit data from response headers. Caches the result to `~/.claude/usage.json`.
 2. **statusline.sh** — Displays the session usage as a color-coded progress bar with percentage centered inside and a time-until-reset label. Auto-refreshes in the background every 30 seconds.
 
 ## Prerequisites
@@ -53,7 +53,7 @@ node scraper.mjs
 
 ## Note
 
-This tool uses an undocumented Anthropic API endpoint (`/api/oauth/usage`) that is not part of the public API. It may break or be blocked at any time without notice.
+This tool extracts rate limit data from undocumented response headers on the Messages API (enabled via the `anthropic-beta: oauth-2025-04-20` header). Each refresh makes a minimal Haiku API call (~$0.001). These headers are not part of the public API and may change without notice.
 
 ## Uninstall
 

@@ -8,7 +8,7 @@ Fetches Claude 5-hour session usage from Anthropic's OAuth API and displays it a
 
 ## Architecture
 
-- **scraper.mjs** — Node.js script (no dependencies). Reads OAuth token from `~/.claude/.credentials.json`, calls `GET https://api.anthropic.com/api/oauth/usage`, writes result to `~/.claude/usage.json`.
+- **scraper.mjs** — Node.js script (no dependencies). Reads OAuth token from `~/.claude/.credentials.json`, makes a minimal Messages API call (`claude-haiku-4-5-20251001`, 1 max token) and extracts rate limit data from response headers. Writes result to `~/.claude/usage.json`.
 - **statusline.sh** — Bash script invoked by Claude Code on each interaction. Reads `~/.claude/usage.json` (cached usage data) and displays a progress bar with the percentage centered inside and a time-until-reset label. Triggers background scraper refresh when data is >30s stale. Auto-expires orphaned lock files after 60s.
 - **install.sh** — Checks prerequisites (Node.js), preserves existing statusline via a wrapper if present, updates `~/.claude/settings.json`, and runs an initial data fetch.
 
@@ -42,7 +42,15 @@ A single progress bar with the percentage centered inside, prefixed by a countdo
 
 ## API Details
 
-- Endpoint: `GET https://api.anthropic.com/api/oauth/usage`
+The scraper uses the Messages API to extract rate limit data from response headers, avoiding the `/api/oauth/usage` endpoint which suffers from persistent 429 rate limiting.
+
+- Endpoint: `POST https://api.anthropic.com/v1/messages`
+- Model: `claude-haiku-4-5-20251001` (cheapest, ~$0.001 per probe)
+- Payload: `{ max_tokens: 1, messages: [{ role: "user", content: "hi" }] }`
 - Auth header: `Authorization: Bearer <oauth-token>`
-- Required header: `anthropic-beta: oauth-2025-04-20`
-- Returns JSON with `five_hour.utilization` (0-100 percentage) and `five_hour.resets_at` (ISO timestamp).
+- Required headers: `anthropic-version: 2023-06-01`, `anthropic-beta: oauth-2025-04-20`
+- Rate limit headers returned:
+  - `anthropic-ratelimit-unified-5h-utilization` (0-1 ratio, converted to 0-100)
+  - `anthropic-ratelimit-unified-5h-reset` (Unix epoch seconds)
+  - `anthropic-ratelimit-unified-7d-utilization` (0-1 ratio, converted to 0-100)
+  - `anthropic-ratelimit-unified-7d-reset` (Unix epoch seconds)

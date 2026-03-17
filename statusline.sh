@@ -10,7 +10,8 @@ LOCK_FILE="$HOME/.claude/.scraper.lock"
 STALE_SECONDS=30  # 30 seconds
 LOCK_MAX_AGE=60   # auto-expire lock after 60 seconds
 
-cat > /dev/null  # consume stdin
+# Read stdin JSON for context window data
+stdin_data=$(cat)
 
 # Clean up stale lock files (e.g., from killed scraper processes)
 if [ -f "$LOCK_FILE" ]; then
@@ -129,7 +130,9 @@ if [ -f "$USAGE_FILE" ]; then
     now_epoch=$(date +%s)
     remaining=$(( reset_epoch - now_epoch ))
     if [ "$remaining" -le 0 ]; then
-      reset_label="0m"
+      # Session has reset — utilization is now 0 until we fetch fresh data
+      h5=0
+      reset_label="reset"
     else
       reset_h=$(( remaining / 3600 ))
       reset_m=$(( (remaining % 3600) / 60 ))
